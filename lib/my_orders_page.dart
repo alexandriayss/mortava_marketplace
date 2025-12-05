@@ -56,7 +56,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     if (!mounted) return;
 
     if (userId == null) {
-      // kalau belum login / user_id hilang
       setState(() {
         _futureOrders = Future.error('User belum login');
       });
@@ -85,7 +84,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
       final body = jsonDecode(response.body);
 
       if (body is List) {
-        return body.map((e) => OrderModel.fromJson(e)).toList();
+        return body
+            .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         throw Exception("Format API tidak sesuai (harus list)");
       }
@@ -143,6 +144,21 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // ==========================
+                              //   Seller username (baru)
+                              // ==========================
+                              if (o.sellerUsername != null &&
+                                  o.sellerUsername!.isNotEmpty)
+                                Text(
+                                  'Penjual: ${o.sellerUsername!}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+
+                              const SizedBox(height: 8),
+
                               // ==========================
                               //   Info produk yang dibeli
                               // ==========================

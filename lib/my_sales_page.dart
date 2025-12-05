@@ -1,4 +1,3 @@
-// lib/pages/my_sales_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,7 +18,6 @@ class _MySalesPageState extends State<MySalesPage> {
   Future<List<OrderModel>>? _futureSales;
   int? _userId;
 
-  // cache Future produk per productId
   final Map<int, Future<Product>> _productFutures = {};
 
   Future<Product> _getProduct(int productId) {
@@ -86,7 +84,9 @@ class _MySalesPageState extends State<MySalesPage> {
       final body = jsonDecode(response.body);
 
       if (body is List) {
-        return body.map((e) => OrderModel.fromJson(e)).toList();
+        return body
+            .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         throw Exception('Format API tidak sesuai (harus List)');
       }
@@ -144,6 +144,21 @@ class _MySalesPageState extends State<MySalesPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // ====================
+                              // buyer username (baru)
+                              // ====================
+                              if (o.buyerUsername != null &&
+                                  o.buyerUsername!.isNotEmpty)
+                                Text(
+                                  'Pembeli: ${o.buyerUsername!}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+
+                              const SizedBox(height: 8),
+
                               // ====================
                               // Info produk terjual
                               // ====================

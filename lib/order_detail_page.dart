@@ -41,12 +41,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         throw Exception('Response bukan objek JSON');
       }
     } else {
-      final dynamic raw = jsonDecode(response.body);
-      String msg = 'Gagal memuat detail order';
-      if (raw is Map && raw['message'] != null) {
-        msg = raw['message'];
+      // jika server mengembalikan pesan error dalam body, ambil message-nya
+      try {
+        final dynamic raw = jsonDecode(response.body);
+        String msg = 'Gagal memuat detail order';
+        if (raw is Map && raw['message'] != null) {
+          msg = raw['message'];
+        }
+        throw Exception(msg);
+      } catch (_) {
+        throw Exception('Gagal memuat detail order (${response.statusCode})');
       }
-      throw Exception(msg);
     }
   }
 
@@ -167,6 +172,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   },
                 ),
 
+                const SizedBox(height: 12),
+
+                // =======================
+                // Seller username (jika ada)
+                // =======================
+                if (o.sellerUsername != null &&
+                    o.sellerUsername!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Penjual: ${o.sellerUsername!}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 8),
@@ -182,6 +201,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // Buyer username (jika ada)
+                if (o.buyerUsername != null && o.buyerUsername!.isNotEmpty) ...[
+                  Text('Pembeli: ${o.buyerUsername!}'),
+                  const SizedBox(height: 8),
+                ],
+
                 Text('Status: ${o.status}'),
                 const SizedBox(height: 8),
                 Text('Metode Pembayaran: ${o.paymentMethod.toUpperCase()}'),
