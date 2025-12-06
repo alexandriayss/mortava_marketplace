@@ -1,4 +1,4 @@
-// lib/pages/product_form_page.dart
+// lib/views/product_form_page.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/product_model.dart';
+import '../../../models/product_model.dart';
 
 class CreateEditProductPage extends StatefulWidget {
   final Product? product; // null = create, not null = edit
@@ -156,6 +156,8 @@ class _CreateEditProductPageState extends State<CreateEditProductPage> {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final body = jsonDecode(response.body);
       debugPrint('Create product response: $body');
+      if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Produk berhasil dibuat')));
@@ -220,6 +222,8 @@ class _CreateEditProductPageState extends State<CreateEditProductPage> {
         final body = jsonDecode(response.body);
         debugPrint('Update product response json: $body');
       } catch (_) {}
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Produk berhasil diperbarui')),

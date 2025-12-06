@@ -1,9 +1,8 @@
-// lib/pages/product_detail_page.dart
-import 'dart:convert';
+// lib/views/product_detail_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/product_model.dart';
+import '../controllers/product_controller.dart';
 import 'order_create_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -17,44 +16,12 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late Future<Product> _futureProduct;
-
-  Future<Product> _fetchProductDetail() async {
-    final url = Uri.parse(
-      'http://mortava.biz.id/api/products/${widget.productId}',
-    );
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-
-      // Antisipasi:
-      // 1) langsung object
-      // 2) { "data": {...} }
-      // 3) { "product": {...} }
-      Map<String, dynamic> map;
-      if (body is Map && body['data'] is Map) {
-        map = Map<String, dynamic>.from(body['data']);
-      } else if (body is Map && body['product'] is Map) {
-        map = Map<String, dynamic>.from(body['product']);
-      } else if (body is Map) {
-        map = Map<String, dynamic>.from(body);
-      } else {
-        throw Exception('Format detail produk tidak dikenali');
-      }
-
-      return Product.fromJson(map);
-    } else {
-      throw Exception('Gagal memuat detail produk (${response.statusCode})');
-    }
-  }
+  final ProductController _productController = ProductController();
 
   @override
   void initState() {
     super.initState();
-    _futureProduct = _fetchProductDetail();
+    _futureProduct = _productController.getProductDetail(widget.productId);
   }
 
   @override
@@ -69,6 +36,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: Text('Produk tidak ditemukan'));
           }
 
           final p = snapshot.data!;

@@ -1,13 +1,11 @@
-// lib/pages/my_products_page.dart
-import 'dart:convert';
-
+// lib/views/my_products_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/product_model.dart';
+import '../controllers/product_controller.dart';
 import 'product_detail_page.dart';
 import 'product_form_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class MyProductsPage extends StatefulWidget {
   const MyProductsPage({super.key});
@@ -17,9 +15,10 @@ class MyProductsPage extends StatefulWidget {
 }
 
 class _MyProductsPageState extends State<MyProductsPage> {
-  Future<List<Product>>? _futureMyProducts; // <- nullable
-
+  Future<List<Product>>? _futureMyProducts;
   int? _userId;
+
+  final ProductController _productController = ProductController();
 
   @override
   void initState() {
@@ -28,44 +27,30 @@ class _MyProductsPageState extends State<MyProductsPage> {
   }
 
   Future<void> _loadUser() async {
+    // delay kecil (opsional)
     await Future.delayed(const Duration(milliseconds: 100));
 
     final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getInt('user_id');
+    final userId = prefs.getInt('user_id');
+
+    if (!mounted) return;
 
     setState(() {
-      _futureMyProducts = _fetchMyProducts();
+      _userId = userId;
+      if (userId != null) {
+        _futureMyProducts = _productController.fetchMyProducts(userId);
+      } else {
+        _futureMyProducts = Future.error(
+          Exception('User belum login / user_id tidak ditemukan'),
+        );
+      }
     });
   }
 
-  Future<List<Product>> _fetchMyProducts() async {
-    if (_userId == null) {
-      throw Exception('User belum login / user_id tidak ditemukan');
-    }
-    final url = Uri.parse('http://mortava.biz.id/api/products/user/$_userId');
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-
-      if (body is List) {
-        return body.map((e) => Product.fromJson(e)).toList();
-      } else {
-        throw Exception(
-          'Format response Produk Saya tidak sesuai (harus List)',
-        );
-      }
-    } else {
-      throw Exception('Gagal memuat produk saya (${response.statusCode})');
-    }
-  }
-
   Future<void> _refresh() async {
+    if (_userId == null) return;
     setState(() {
-      _futureMyProducts = _fetchMyProducts();
+      _futureMyProducts = _productController.fetchMyProducts(_userId!);
     });
   }
 
@@ -74,6 +59,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
       context,
       MaterialPageRoute(builder: (_) => const CreateEditProductPage()),
     );
+
+    if (!mounted) return;
 
     if (changed == true) {
       _refresh();
@@ -85,6 +72,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
       context,
       MaterialPageRoute(builder: (_) => CreateEditProductPage(product: p)),
     );
+
+    if (!mounted) return;
 
     if (changed == true) {
       _refresh();
@@ -113,30 +102,17 @@ class _MyProductsPageState extends State<MyProductsPage> {
     if (confirm != true) return;
 
     try {
-      final url = Uri.parse('http://mortava.biz.id/api/products/${p.id}');
-      final response = await http.delete(
-        url,
-        headers: {'Accept': 'application/json'},
-      );
+      await _productController.deleteMyProduct(p.id);
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Produk "${p.name}" berhasil dihapus')),
-        );
-        _refresh();
-      } else {
-        String msg = 'Gagal menghapus produk (${response.statusCode})';
-        try {
-          final body = jsonDecode(response.body);
-          if (body is Map && body['message'] != null) {
-            msg = body['message'];
-          }
-        } catch (_) {}
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Produk "${p.name}" berhasil dihapus')),
+      );
+      _refresh();
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error hapus produk: $e')));
@@ -148,7 +124,6 @@ class _MyProductsPageState extends State<MyProductsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Produk Saya')),
       body: (_futureMyProducts == null)
-          // future belum di-set (user_id masih diload) → tampilkan loading
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<List<Product>>(
               future: _futureMyProducts,
@@ -265,11 +240,14 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: p.status == 'tersedia'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.grey.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              50,
-                                            ),
+                                                ? Colors.green.withAlpha(
+                                                    (0.1 * 255).round(),
+                                                  )
+                                                : Colors.grey.withAlpha(
+                                                    (0.1 * 255).round(),
+                                                  ),
+                                            borderRadius:
+                                                BorderRadius.circular(50),
                                           ),
                                           child: Text(
                                             p.status!,

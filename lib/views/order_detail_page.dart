@@ -1,10 +1,10 @@
-// lib/pages/order_detail_page.dart
-import 'dart:convert';
+// lib/views/order_detail_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/order_model.dart';
 import '../models/product_model.dart';
+import '../controllers/order_controller.dart';
+import '../controllers/product_controller.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final int orderId;
@@ -18,66 +18,13 @@ class OrderDetailPage extends StatefulWidget {
 class _OrderDetailPageState extends State<OrderDetailPage> {
   late Future<OrderModel> _futureOrder;
 
-  Future<OrderModel> _fetchOrderDetail() async {
-    final url = Uri.parse('http://mortava.biz.id/api/orders/${widget.orderId}');
-
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final dynamic raw = jsonDecode(response.body);
-
-      if (raw is Map) {
-        final Map<String, dynamic> body = Map<String, dynamic>.from(raw);
-
-        if (body['id'] != null) {
-          return OrderModel.fromJson(body);
-        } else {
-          throw Exception('Format detail order tidak sesuai');
-        }
-      } else {
-        throw Exception('Response bukan objek JSON');
-      }
-    } else {
-      // jika server mengembalikan pesan error dalam body, ambil message-nya
-      try {
-        final dynamic raw = jsonDecode(response.body);
-        String msg = 'Gagal memuat detail order';
-        if (raw is Map && raw['message'] != null) {
-          msg = raw['message'];
-        }
-        throw Exception(msg);
-      } catch (_) {
-        throw Exception('Gagal memuat detail order (${response.statusCode})');
-      }
-    }
-  }
-
-  Future<Product> _fetchProduct(int productId) async {
-    final url = Uri.parse('http://mortava.biz.id/api/products/$productId');
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      if (body is Map<String, dynamic>) {
-        return Product.fromJson(body);
-      } else {
-        throw Exception('Format produk tidak sesuai');
-      }
-    } else {
-      throw Exception('Gagal memuat produk ($productId)');
-    }
-  }
+  final OrderController _orderController = OrderController();
+  final ProductController _productController = ProductController();
 
   @override
   void initState() {
     super.initState();
-    _futureOrder = _fetchOrderDetail();
+    _futureOrder = _orderController.fetchOrderDetail(widget.orderId);
   }
 
   @override
@@ -95,6 +42,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
+          if (!snapshot.hasData) {
+            return const Center(child: Text('Order tidak ditemukan'));
+          }
+
           final o = snapshot.data!;
 
           return SingleChildScrollView(
@@ -106,7 +57,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 // Info produk yang dibeli
                 // =======================
                 FutureBuilder<Product>(
-                  future: _fetchProduct(o.productId),
+                  future: _productController.getProductDetail(o.productId),
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
                       return const Text(
@@ -174,9 +125,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
                 const SizedBox(height: 12),
 
-                // =======================
                 // Seller username (jika ada)
-                // =======================
                 if (o.sellerUsername != null &&
                     o.sellerUsername!.isNotEmpty) ...[
                   const SizedBox(height: 6),
@@ -203,7 +152,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 const SizedBox(height: 8),
 
                 // Buyer username (jika ada)
-                if (o.buyerUsername != null && o.buyerUsername!.isNotEmpty) ...[
+                if (o.buyerUsername != null &&
+                    o.buyerUsername!.isNotEmpty) ...[
                   Text('Pembeli: ${o.buyerUsername!}'),
                   const SizedBox(height: 8),
                 ],

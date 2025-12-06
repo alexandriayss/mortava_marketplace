@@ -1,6 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'marketplace_page.dart';
+import 'views/marketplace_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

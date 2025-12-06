@@ -1,8 +1,7 @@
-import 'dart:convert';
-
+// lib/views/login_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../controllers/auth_controller.dart';
 import 'marketplace_page.dart';
 import 'register_page.dart';
 
@@ -17,70 +16,33 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _identifierC = TextEditingController();
   final TextEditingController _passwordC = TextEditingController();
 
+  final AuthController _authController = AuthController();
+
   bool _isLoading = false;
 
   Future<void> _login() async {
     final identifier = _identifierC.text.trim();
     final password = _passwordC.text;
 
-    if (identifier.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Identifier dan password wajib diisi')),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final url = Uri.parse('http://mortava.biz.id/api/login');
-
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'identifier': identifier, 'password': password}),
-      );
+      await _authController.login(identifier, password);
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setInt('user_id', data['user']['id']);
-        prefs.setString('username', data['user']['username']);
-        prefs.setString('email', data['user']['email']);
-
-        // Arahkan ke marketplace
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MarketplacePage()),
-        );
-      } else {
-        // Kalau server balikin error (4xx / 5xx)
-        String errorMsg = 'Login gagal (${response.statusCode})';
-
-        try {
-          final body = jsonDecode(response.body);
-          if (body is Map && body['message'] != null) {
-            errorMsg = body['message'];
-          }
-        } catch (_) {}
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMsg)));
-      }
+      // kalau sukses → ke marketplace
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MarketplacePage()),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Terjadi kesalahan: $e')));
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {

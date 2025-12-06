@@ -1,129 +1,79 @@
-import 'dart:convert';
+// lib/views/my_orders_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/order_model.dart';
 import '../models/product_model.dart';
+import '../controllers/order_controller.dart';
+import '../controllers/product_controller.dart';
 import 'order_detail_page.dart';
 
-class MySalesPage extends StatefulWidget {
-  const MySalesPage({super.key});
+class MyOrdersPage extends StatefulWidget {
+  const MyOrdersPage({super.key});
 
   @override
-  State<MySalesPage> createState() => _MySalesPageState();
+  State<MyOrdersPage> createState() => _MyOrdersPageState();
 }
 
-class _MySalesPageState extends State<MySalesPage> {
-  Future<List<OrderModel>>? _futureSales;
-  int? _userId;
+class _MyOrdersPageState extends State<MyOrdersPage> {
+  Future<List<OrderModel>>? _futureOrders;
 
-  final Map<int, Future<Product>> _productFutures = {};
-
-  Future<Product> _getProduct(int productId) {
-    _productFutures.putIfAbsent(productId, () async {
-      final url = Uri.parse('http://mortava.biz.id/api/products/$productId');
-      final response = await http.get(
-        url,
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        if (body is Map<String, dynamic>) {
-          return Product.fromJson(body);
-        } else {
-          throw Exception('Format produk tidak sesuai');
-        }
-      } else {
-        throw Exception('Gagal memuat produk ($productId)');
-      }
-    });
-
-    return _productFutures[productId]!;
-  }
+  final OrderController _orderController = OrderController();
+  final ProductController _productController = ProductController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserAndSales();
+    _loadUserAndOrders();
   }
 
-  Future<void> _loadUserAndSales() async {
+  Future<void> _loadUserAndOrders() async {
     final prefs = await SharedPreferences.getInstance();
-    final id = prefs.getInt('user_id');
+    final userId = prefs.getInt('user_id');
 
     if (!mounted) return;
 
-    if (id == null) {
+    if (userId == null) {
       setState(() {
-        _futureSales = Future.error('User belum login');
+        _futureOrders = Future.error('User belum login');
       });
       return;
     }
 
     setState(() {
-      _userId = id;
-      _futureSales = _fetchSales();
+      _futureOrders = _orderController.fetchOrdersForUser(userId);
     });
-  }
-
-  Future<List<OrderModel>> _fetchSales() async {
-    if (_userId == null) {
-      throw Exception('User belum login');
-    }
-
-    final url = Uri.parse('http://mortava.biz.id/api/orders/sell/$_userId');
-
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-
-      if (body is List) {
-        return body
-            .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception('Format API tidak sesuai (harus List)');
-      }
-    } else {
-      throw Exception('Gagal memuat penjualan (${response.statusCode})');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Penjualan Saya')),
-      body: _futureSales == null
+      appBar: AppBar(title: const Text("Pesanan Saya")),
+      body: _futureOrders == null
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<List<OrderModel>>(
-              future: _futureSales,
+              future: _futureOrders,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(child: Text("Error: ${snapshot.error}"));
                 }
 
-                final sales = snapshot.data ?? [];
+                final orders = snapshot.data ?? [];
 
-                if (sales.isEmpty) {
-                  return const Center(child: Text('Belum ada penjualan'));
+                if (orders.isEmpty) {
+                  return const Center(child: Text("Belum ada pesanan"));
                 }
 
                 return ListView.separated(
                   padding: const EdgeInsets.all(12),
-                  itemCount: sales.length,
+                  itemCount: orders.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final o = sales[index];
+                    final o = orders[index];
 
                     return Card(
                       shape: RoundedRectangleBorder(
@@ -144,13 +94,11 @@ class _MySalesPageState extends State<MySalesPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // ====================
-                              // buyer username (baru)
-                              // ====================
-                              if (o.buyerUsername != null &&
-                                  o.buyerUsername!.isNotEmpty)
+                              // Penjual
+                              if (o.sellerUsername != null &&
+                                  o.sellerUsername!.isNotEmpty)
                                 Text(
-                                  'Pembeli: ${o.buyerUsername!}',
+                                  'Penjual: ${o.sellerUsername!}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
@@ -159,11 +107,10 @@ class _MySalesPageState extends State<MySalesPage> {
 
                               const SizedBox(height: 8),
 
-                              // ====================
-                              // Info produk terjual
-                              // ====================
+                              // Info produk yang dibeli
                               FutureBuilder<Product>(
-                                future: _getProduct(o.productId),
+                                future: _productController
+                                    .getProductByIdCached(o.productId),
                                 builder: (context, snap) {
                                   if (snap.connectionState ==
                                       ConnectionState.waiting) {
@@ -196,8 +143,7 @@ class _MySalesPageState extends State<MySalesPage> {
                                         child: SizedBox(
                                           width: 60,
                                           height: 60,
-                                          child:
-                                              (p.image != null &&
+                                          child: (p.image != null &&
                                                   p.image!.isNotEmpty)
                                               ? Image.network(
                                                   p.image!,
@@ -244,11 +190,9 @@ class _MySalesPageState extends State<MySalesPage> {
 
                               const SizedBox(height: 12),
 
-                              // ====================
                               // Info order
-                              // ====================
                               Text(
-                                'Order #${o.id}',
+                                "Order #${o.id}",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -256,9 +200,34 @@ class _MySalesPageState extends State<MySalesPage> {
                               ),
                               const SizedBox(height: 4),
                               if (o.totalPrice != null)
-                                Text('Total: Rp ${o.totalPrice}'),
-                              Text('Metode: ${o.paymentMethod.toUpperCase()}'),
-                              Text('Status: ${o.status}'),
+                                Text("Total: Rp ${o.totalPrice}"),
+                              Text("Metode: ${o.paymentMethod.toUpperCase()}"),
+                              Text("Status: ${o.status}"),
+
+                              const SizedBox(height: 6),
+                              const Text(
+                                "Alamat Pengiriman:",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+
+                              if (o.shippingStreet != null &&
+                                  o.shippingStreet!.isNotEmpty)
+                                Text(o.shippingStreet!)
+                              else
+                                const Text('-'),
+
+                              Text(
+                                "${o.shippingCity ?? '-'}, ${o.shippingState ?? '-'}",
+                              ),
+                              Text(
+                                "${o.shippingPostalCode ?? '-'}, ${o.shippingCountry ?? '-'}",
+                              ),
+                              if (o.shippingPhone != null &&
+                                  o.shippingPhone!.isNotEmpty)
+                                Text("Telp: ${o.shippingPhone}")
+                              else
+                                const Text("Telp: -"),
+
                               const Align(
                                 alignment: Alignment.centerRight,
                                 child: Icon(Icons.chevron_right),

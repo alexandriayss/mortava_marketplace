@@ -1,0 +1,107 @@
+// lib/services/product_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import '../models/product_model.dart';
+import 'api_service.dart';
+
+class ProductService {
+  final ApiService _api = ApiService();
+
+  // Dipakai di BERANDA (Marketplace)
+  Future<List<Product>> getAllProducts() async {
+    final http.Response response = await _api.getRaw('/products');
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+
+      List<dynamic> list;
+      if (body is List) {
+        list = body;
+      } else if (body is Map && body['data'] is List) {
+        list = body['data'];
+      } else if (body is Map && body['products'] is List) {
+        list = body['products'];
+      } else {
+        throw Exception('Format data produk tidak dikenali');
+      }
+
+      return list.map((e) => Product.fromJson(e)).toList();
+    } else {
+      throw Exception('Gagal memuat produk (${response.statusCode})');
+    }
+  }
+
+  // Dipakai di "Produk Saya" (MyProductsPage)
+  Future<List<Product>> getMyProducts(int userId) async {
+    // endpoint PERSIS sama seperti di kode lamamu:
+    // http://mortava.biz.id/api/products/user/$_userId
+    final http.Response response =
+        await _api.getRaw('/products/user/$userId');
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+
+      if (body is List) {
+        return body.map((e) => Product.fromJson(e)).toList();
+      } else {
+        throw Exception(
+          'Format response Produk Saya tidak sesuai (harus List)',
+        );
+      }
+    } else {
+      throw Exception('Gagal memuat produk saya (${response.statusCode})');
+    }
+  }
+
+  // Hapus produk (dipanggil dari MyProductsPage)
+  Future<void> deleteProduct(int productId) async {
+    // pakai URL yang sama kayak kode lama
+    final url = Uri.parse('${ApiService.baseUrl}/products/$productId');
+    final response = await http.delete(
+      url,
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    } else {
+      String msg = 'Gagal menghapus produk (${response.statusCode})';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['message'] != null) {
+          msg = body['message'];
+        }
+      } catch (_) {}
+      throw Exception(msg);
+    }
+  }
+
+  // AMBIL 1 PRODUK BERDASARKAN ID (dipakai di MyOrders)
+   Future<Product> getProductById(int productId) async {
+    final http.Response response = await _api.getRaw('/products/$productId');
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+
+      // Antisipasi:
+      // 1) langsung object
+      // 2) { "data": {...} }
+      // 3) { "product": {...} }
+      Map<String, dynamic> map;
+      if (body is Map && body['data'] is Map) {
+        map = Map<String, dynamic>.from(body['data']);
+      } else if (body is Map && body['product'] is Map) {
+        map = Map<String, dynamic>.from(body['product']);
+      } else if (body is Map) {
+        map = Map<String, dynamic>.from(body);
+      } else {
+        throw Exception('Format detail produk tidak dikenali');
+      }
+
+      return Product.fromJson(map);
+    } else {
+      throw Exception('Gagal memuat detail produk (${response.statusCode})');
+    }
+  }
+}

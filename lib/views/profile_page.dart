@@ -1,6 +1,8 @@
-// lib/pages/profile_page.dart
+// lib/views/profile_page.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/user_model.dart';
+import '../controllers/user_controller.dart';
 import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -11,10 +13,10 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? _username;
-  String? _email;
-  String? _createdAt; // kalau nanti backend kasih tanggal join
+  UserModel? _user;
   bool _isLoading = true;
+
+  final UserController _userController = UserController();
 
   @override
   void initState() {
@@ -23,19 +25,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = await _userController.getCurrentUser();
+
+    if (!mounted) return;
+
     setState(() {
-      _username = prefs.getString('username');
-      _email = prefs.getString('email');
-      // sementara createdAt dummy saja, nanti bisa kamu simpan juga saat login
-      _createdAt = 'Bergabung: 02 Desember 2025';
+      _user = user;
       _isLoading = false;
     });
   }
 
   Future<void> _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await _userController.logout();
 
     if (!context.mounted) return;
 
@@ -49,13 +50,15 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    // fallback kalau entah kenapa datanya null (misal belum login)
-    final username = _username ?? 'User';
-    final email = _email ?? '-';
-    final createdAt = _createdAt ?? '';
+    // fallback kalau user null (misal belum login)
+    final username = _user?.username ?? 'User';
+    final email = _user?.email ?? '-';
+    final createdAt = _user?.createdAt ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil Saya')),

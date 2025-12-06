@@ -1,9 +1,9 @@
-// lib/pages/marketplace_page.dart
-import 'dart:convert';
+// lib/views/marketplace_page.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/product_model.dart';
+import '../controllers/product_controller.dart';
+
 import 'product_detail_page.dart';
 import 'profile_page.dart';
 import 'my_products_page.dart';
@@ -75,42 +75,12 @@ class _BerandaPage extends StatefulWidget {
 
 class _BerandaPageState extends State<_BerandaPage> {
   late Future<List<Product>> _futureProducts;
-
-  Future<List<Product>> _fetchProducts() async {
-    final url = Uri.parse('http://mortava.biz.id/api/products');
-    final response = await http.get(
-      url,
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-
-      // Antisipasi beberapa bentuk response:
-      // 1) langsung list
-      // 2) { "data": [ ... ] }
-      // 3) { "products": [ ... ] }
-      List<dynamic> list;
-      if (body is List) {
-        list = body;
-      } else if (body is Map && body['data'] is List) {
-        list = body['data'];
-      } else if (body is Map && body['products'] is List) {
-        list = body['products'];
-      } else {
-        throw Exception('Format response tidak dikenali');
-      }
-
-      return list.map((e) => Product.fromJson(e)).toList();
-    } else {
-      throw Exception('Gagal memuat produk (${response.statusCode})');
-    }
-  }
+  final ProductController _productController = ProductController();
 
   @override
   void initState() {
     super.initState();
-    _futureProducts = _fetchProducts();
+    _futureProducts = _productController.fetchProducts();
   }
 
   @override
