@@ -1,9 +1,18 @@
 // lib/views/my_products_page.dart
+//
+// My Products Page dengan tema Mortava Shop + MortavaTheme:
+// - Background gradient cream–peach (MortavaDecorations.marketplaceBackgroundBox())
+// - Header custom (logo + "My Products")
+// - Card produk lebih rapi, pakai Poppins, harga pakai MortavaColors.primaryOrange
+// - Tombol tambah produk via FloatingActionButton warna primaryOrange
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/product_model.dart';
 import '../controllers/product_controller.dart';
+import '../theme/mortava_theme.dart';
 import 'product_detail_page.dart';
 import 'product_form_page.dart';
 
@@ -93,7 +102,10 @@ class _MyProductsPageState extends State<MyProductsPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -113,183 +125,308 @@ class _MyProductsPageState extends State<MyProductsPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error hapus produk: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error hapus produk: $e')),
+      );
     }
+  }
+
+  // ===== helper untuk badge status (ID -> EN) =====
+  Widget _buildStatusBadge(String? status) {
+    if (status == null || status.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    String label;
+    Color fg;
+    Color bg;
+
+    if (status == 'tersedia') {
+      label = 'Available';
+      fg = Colors.green;
+      bg = Colors.green.withOpacity(0.10);
+    } else if (status == 'terjual') {
+      label = 'Sold';
+      fg = Colors.grey.shade700;
+      bg = Colors.grey.withOpacity(0.15);
+    } else {
+      // fallback kalau backend kirim value lain
+      label = status;
+      fg = Colors.grey.shade700;
+      bg = Colors.grey.withOpacity(0.15);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 11,
+          color: fg,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Produk Saya')),
-      body: (_futureMyProducts == null)
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<Product>>(
-              future: _futureMyProducts,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      // Tidak pakai AppBar bawaan, diganti header custom + background Mortava
+      body: Container(
+        decoration: MortavaDecorations.marketplaceBackgroundBox(),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+              // ================= HEADER =================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 26,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'My Products',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: MortavaColors.darkText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Container(
+                height: 3,
+                width: 110,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFFF8A65),
+                      Color(0xFFFF7043),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
 
-                final products = snapshot.data ?? [];
+              Expanded(
+                child: (_futureMyProducts == null)
+                    ? const Center(child: CircularProgressIndicator())
+                    : FutureBuilder<List<Product>>(
+                        future: _futureMyProducts,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
 
-                if (products.isEmpty) {
-                  return const Center(
-                    child: Text('Kamu belum punya produk di marketplace'),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: products.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final p = products[index];
-
-                      return Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            // Thumbnail
-                            ClipRRect(
-                              borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(12),
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error: ${snapshot.error}',
+                                style: GoogleFonts.poppins(),
                               ),
-                              child: SizedBox(
-                                height: 90,
-                                width: 90,
-                                child: p.image != null && p.image!.isNotEmpty
-                                    ? Image.network(
-                                        p.image!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(
-                                              Icons.image_not_supported,
-                                            ),
-                                      )
-                                    : const Center(
-                                        child: Icon(Icons.image, size: 32),
-                                      ),
+                            );
+                          }
+
+                          final products = snapshot.data ?? [];
+
+                          if (products.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'You don\'t have any products yet.',
+                                style: GoogleFonts.poppins(fontSize: 13),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Info produk
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ProductDetailPage(productId: p.id),
+                            );
+                          }
+
+                          return RefreshIndicator(
+                            onRefresh: _refresh,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(14),
+                              itemCount: products.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final p = products[index];
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFFFFFFFF),
+                                        Color(0xFFFFF5EB),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.orange.withOpacity(0.10),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
                                       ),
-                                    );
-                                  },
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    ],
+                                    border: Border.all(
+                                      color: const Color(0xFFFFD9B3)
+                                          .withOpacity(0.6),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
                                     children: [
-                                      Text(
-                                        p.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                      // Thumbnail
+                                      ClipRRect(
+                                        borderRadius:
+                                            const BorderRadius.horizontal(
+                                          left: Radius.circular(20),
+                                        ),
+                                        child: SizedBox(
+                                          height: 90,
+                                          width: 90,
+                                          child: p.image != null &&
+                                                  p.image!.isNotEmpty
+                                              ? Image.network(
+                                                  p.image!,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (_, __, ___) =>
+                                                          const Icon(
+                                                    Icons.image_not_supported,
+                                                  ),
+                                                )
+                                              : const Center(
+                                                  child: Icon(
+                                                    Icons.image,
+                                                    size: 32,
+                                                  ),
+                                                ),
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      if (p.category != null)
-                                        Text(
-                                          p.category!,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      const SizedBox(height: 4),
-                                      if (p.offerPrice != null)
-                                        Text(
-                                          'Rp ${p.offerPrice}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        )
-                                      else if (p.price != null)
-                                        Text('Rp ${p.price}'),
-                                      const SizedBox(height: 4),
-                                      if (p.status != null)
-                                        Container(
+                                      const SizedBox(width: 12),
+
+                                      // Info produk
+                                      Expanded(
+                                        child: Padding(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
+                                            vertical: 10,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: p.status == 'tersedia'
-                                                ? Colors.green.withAlpha(
-                                                    (0.1 * 255).round(),
-                                                  )
-                                                : Colors.grey.withAlpha(
-                                                    (0.1 * 255).round(),
+                                          child: InkWell(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      ProductDetailPage(
+                                                    productId: p.id,
                                                   ),
-                                            borderRadius:
-                                                BorderRadius.circular(50),
-                                          ),
-                                          child: Text(
-                                            p.status!,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: p.status == 'tersedia'
-                                                  ? Colors.green
-                                                  : Colors.grey,
+                                                ),
+                                              );
+                                            },
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  p.name,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                if (p.category != null)
+                                                  Text(
+                                                    p.category!,
+                                                    style:
+                                                        GoogleFonts.poppins(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                const SizedBox(height: 4),
+                                                if (p.offerPrice != null)
+                                                  Text(
+                                                    'Rp ${p.offerPrice}',
+                                                    style:
+                                                        GoogleFonts.poppins(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: MortavaColors
+                                                          .primaryOrange,
+                                                    ),
+                                                  )
+                                                else if (p.price != null)
+                                                  Text(
+                                                    'Rp ${p.price}',
+                                                    style:
+                                                        GoogleFonts.poppins(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: MortavaColors
+                                                          .primaryOrange,
+                                                    ),
+                                                  ),
+                                                const SizedBox(height: 4),
+
+                                                // status badge (sudah di-translate)
+                                                _buildStatusBadge(p.status),
+                                              ],
                                             ),
                                           ),
                                         ),
+                                      ),
+
+                                      // Aksi edit / delete
+                                      Column(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit),
+                                            onPressed: () => _goToEdit(p),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () =>
+                                                _deleteProduct(p),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
-                            // Aksi edit / delete
-                            Column(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _goToEdit(p),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () => _deleteProduct(p),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _goToCreate,
+        backgroundColor: MortavaColors.primaryOrange,
         child: const Icon(Icons.add),
       ),
     );

@@ -1,10 +1,18 @@
 // lib/views/order_detail_page.dart
+//
+// Order Detail page dengan tema Mortava Shop + MortavaTheme:
+// - Background gradient pakai MortavaDecorations.marketplaceBackgroundBox()
+// - Warna teks utama pakai MortavaColors.darkText
+// - Harga produk pakai MortavaColors.primaryOrange
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/order_model.dart';
 import '../models/product_model.dart';
 import '../controllers/order_controller.dart';
 import '../controllers/product_controller.dart';
+import '../theme/mortava_theme.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final int orderId;
@@ -27,168 +35,360 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     _futureOrder = _orderController.fetchOrderDetail(widget.orderId);
   }
 
+  String _formatPrice(num? value) {
+    if (value == null) return '-';
+    return 'Rp ${value.toString()}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Order')),
-      body: FutureBuilder<OrderModel>(
-        future: _futureOrder,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Container(
+        // Full layar + gradient dari MortavaTheme
+        constraints: const BoxConstraints.expand(),
+        decoration: MortavaDecorations.marketplaceBackgroundBox(),
+        child: SafeArea(
+          child: FutureBuilder<OrderModel>(
+            future: _futureOrder,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: GoogleFonts.poppins(),
+                  ),
+                );
+              }
 
-          if (!snapshot.hasData) {
-            return const Center(child: Text('Order tidak ditemukan'));
-          }
+              if (!snapshot.hasData) {
+                return Center(
+                  child: Text(
+                    'Order not found',
+                    style: GoogleFonts.poppins(),
+                  ),
+                );
+              }
 
-          final o = snapshot.data!;
+              final o = snapshot.data!;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // =======================
-                // Info produk yang dibeli
-                // =======================
-                FutureBuilder<Product>(
-                  future: _productController.getProductDetail(o.productId),
-                  builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return const Text(
-                        'Memuat info produk...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      );
-                    }
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final bottomInset = MediaQuery.of(context).padding.bottom;
 
-                    if (snap.hasError || !snap.hasData) {
-                      return Text(
-                        'Produk #${o.productId}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      );
-                    }
-
-                    final p = snap.data!;
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: (p.image != null && p.image!.isNotEmpty)
-                                ? Image.network(
-                                    p.image!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(Icons.image_not_supported),
-                                  )
-                                : const Icon(Icons.image, size: 40),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 14,
+                      bottom: 24 + bottomInset,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight:
+                            constraints.maxHeight - (14 + 24 + bottomInset),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ============== HEADER ==============
+                          Row(
                             children: [
+                              IconButton(
+                                icon: const Icon(
+                                    Icons.arrow_back_ios_new_rounded),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                              const SizedBox(width: 4),
                               Text(
-                                p.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
+                                'Order Details',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: MortavaColors.darkText,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              if (p.offerPrice != null)
-                                Text('Rp ${p.offerPrice}')
-                              else if (p.price != null)
-                                Text('Rp ${p.price}'),
                             ],
                           ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              width: 120,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFFF8A65),
+                                    Color(0xFFFF7043),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
 
-                const SizedBox(height: 12),
+                          // ============== CARD DETAIL ==============
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFFFFFFFF),
+                                  Color(0xFFFFF5EB),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.16),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                              border: Border.all(
+                                color:
+                                    const Color(0xFFFFD9B3).withOpacity(0.6),
+                                width: 1.2,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 18,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // ========= PRODUCT INFO =========
+                                FutureBuilder<Product>(
+                                  future: _productController
+                                      .getProductDetail(o.productId),
+                                  builder: (context, snap) {
+                                    if (snap.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Text(
+                                        'Loading product info...',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      );
+                                    }
 
-                // Seller username (jika ada)
-                if (o.sellerUsername != null &&
-                    o.sellerUsername!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Penjual: ${o.sellerUsername!}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
+                                    if (snap.hasError || !snap.hasData) {
+                                      return Text(
+                                        'Product #${o.productId}',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 16,
+                                        ),
+                                      );
+                                    }
 
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
+                                    final p = snap.data!;
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          child: SizedBox(
+                                            height: 230,
+                                            width: double.infinity,
+                                            child: Container(
+                                              color: Colors.white,
+                                              child: (p.image != null &&
+                                                      p.image!.isNotEmpty)
+                                                  ? Image.network(
+                                                      p.image!,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder:
+                                                          (_, __, ___) =>
+                                                              const Icon(
+                                                        Icons
+                                                            .image_not_supported,
+                                                      ),
+                                                    )
+                                                  : const Center(
+                                                      child: Icon(
+                                                        Icons.image,
+                                                        size: 40,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          p.name,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: MortavaColors.darkText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatPrice(
+                                              p.offerPrice ?? p.price),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color:
+                                                MortavaColors.primaryOrange,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
 
-                // =======================
-                // Info order
-                // =======================
-                Text(
-                  'Order #${o.id}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                                const SizedBox(height: 18),
+                                Divider(
+                                  color: Colors.grey.shade400,
+                                  height: 24,
+                                ),
 
-                // Buyer username (jika ada)
-                if (o.buyerUsername != null &&
-                    o.buyerUsername!.isNotEmpty) ...[
-                  Text('Pembeli: ${o.buyerUsername!}'),
-                  const SizedBox(height: 8),
-                ],
+                                // ========= SELLER & BUYER =========
+                                if (o.sellerUsername != null &&
+                                    o.sellerUsername!.isNotEmpty) ...[
+                                  Text(
+                                    'Seller',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    o.sellerUsername!,
+                                    style:
+                                        GoogleFonts.poppins(fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
+                                if (o.buyerUsername != null &&
+                                    o.buyerUsername!.isNotEmpty) ...[
+                                  Text(
+                                    'Buyer',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    o.buyerUsername!,
+                                    style:
+                                        GoogleFonts.poppins(fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
 
-                Text('Status: ${o.status}'),
-                const SizedBox(height: 8),
-                Text('Metode Pembayaran: ${o.paymentMethod.toUpperCase()}'),
-                if (o.totalPrice != null) Text('Total: Rp ${o.totalPrice}'),
-                const SizedBox(height: 16),
+                                // ========= ORDER INFO =========
+                                Text(
+                                  'Order Info',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Order ID: #${o.id}',
+                                  style:
+                                      GoogleFonts.poppins(fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Status: ${o.status}',
+                                  style:
+                                      GoogleFonts.poppins(fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Payment method: ${o.paymentMethod.toUpperCase()}',
+                                  style:
+                                      GoogleFonts.poppins(fontSize: 13),
+                                ),
+                                if (o.totalPrice != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Total amount: ${_formatPrice(o.totalPrice)}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
 
-                const Text(
-                  'Alamat Pengiriman',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                if (o.shippingStreet != null && o.shippingStreet!.isNotEmpty)
-                  Text(o.shippingStreet!),
-                if (o.shippingCity != null || o.shippingState != null)
-                  Text(
-                    '${o.shippingCity ?? ''}'
-                    '${o.shippingCity != null && o.shippingState != null ? ', ' : ''}'
-                    '${o.shippingState ?? ''}',
-                  ),
-                if (o.shippingPostalCode != null || o.shippingCountry != null)
-                  Text(
-                    '${o.shippingPostalCode ?? ''}'
-                    '${o.shippingPostalCode != null && o.shippingCountry != null ? ', ' : ''}'
-                    '${o.shippingCountry ?? ''}',
-                  ),
-                if (o.shippingPhone != null && o.shippingPhone!.isNotEmpty)
-                  Text('Telp: ${o.shippingPhone}'),
-              ],
-            ),
-          );
-        },
+                                const SizedBox(height: 18),
+                                Divider(
+                                  color: Colors.grey.shade400,
+                                  height: 24,
+                                ),
+
+                                // ========= SHIPPING ADDRESS =========
+                                Text(
+                                  'Shipping address',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                if (o.shippingStreet != null &&
+                                    o.shippingStreet!.isNotEmpty)
+                                  Text(
+                                    o.shippingStreet!,
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 13),
+                                  ),
+                                if (o.shippingCity != null ||
+                                    o.shippingState != null)
+                                  Text(
+                                    '${o.shippingCity ?? ''}'
+                                    '${o.shippingCity != null && o.shippingState != null ? ', ' : ''}'
+                                    '${o.shippingState ?? ''}',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 13),
+                                  ),
+                                if (o.shippingPostalCode != null ||
+                                    o.shippingCountry != null)
+                                  Text(
+                                    '${o.shippingPostalCode ?? ''}'
+                                    '${o.shippingPostalCode != null && o.shippingCountry != null ? ', ' : ''}'
+                                    '${o.shippingCountry ?? ''}',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 13),
+                                  ),
+                                if (o.shippingPhone != null &&
+                                    o.shippingPhone!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Phone: ${o.shippingPhone}',
+                                    style: GoogleFonts.poppins(
+                                        fontSize: 13),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
       ),
     );
   }

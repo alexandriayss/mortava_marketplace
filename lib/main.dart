@@ -1,6 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'views/marketplace_page.dart';
+import 'views/splash_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,10 +13,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mortava Marketplace',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const MarketplacePage(),
+      title: 'Mortava Marketplace',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.orange,
+      ),
+      home: const SplashPage(), // mulai dari splash
     );
   }
 }

@@ -1,10 +1,19 @@
 // lib/views/order_create_page.dart
+//
+// Order Create Page (Confirm Order) dengan tema Mortava:
+// - Background gradient cream–peach (MortavaDecorations.marketplaceBackgroundBox())
+// - Header custom dengan back button + "Confirm Order"
+// - Card ringkasan produk + card form alamat & payment
+// - Teks sebagian besar bahasa Inggris agar konsisten
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/product_model.dart';
 import '../models/user_model.dart';
 import '../controllers/order_controller.dart';
 import '../controllers/user_controller.dart';
+import '../theme/mortava_theme.dart';
 
 class OrderCreatePage extends StatefulWidget {
   final Product product;
@@ -65,7 +74,7 @@ class _OrderCreatePageState extends State<OrderCreatePage> {
 
     if (_currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User belum login')),
+        const SnackBar(content: Text('User is not logged in')),
       );
       return;
     }
@@ -107,150 +116,307 @@ class _OrderCreatePageState extends State<OrderCreatePage> {
     }
   }
 
+  InputDecoration _fieldDecoration(String label) {
+    const borderRadius = 20.0;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: GoogleFonts.poppins(fontSize: 13),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+        borderSide: const BorderSide(
+          color: MortavaColors.bottomNavBorder,
+          width: 1.1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+        borderSide: const BorderSide(
+          color: MortavaColors.bottomNavBorder,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Konfirmasi Order')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Ringkasan produk
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      body: Container(
+        decoration: MortavaDecorations.marketplaceBackgroundBox(),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ================= HEADER =================
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Confirm Order',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: MortavaColors.darkText,
+                      ),
+                    ),
+                  ],
                 ),
-                child: ListTile(
-                  title: Text(
-                    p.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: 130,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFF8A65),
+                          Color(0xFFFF7043),
+                        ],
+                      ),
+                    ),
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                const SizedBox(height: 16),
+
+                // ================= CARD RINGKASAN PRODUK =================
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFFFF5EB),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: const Color(0xFFFFD9B3).withOpacity(0.7),
+                      width: 1.1,
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      const SizedBox(height: 4),
-                      if (p.offerPrice != null)
-                        Text('Harga: Rp ${p.offerPrice}')
-                      else if (p.price != null)
-                        Text('Harga: Rp ${p.price}'),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.name,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: MortavaColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            if (p.offerPrice != null)
+                              Text(
+                                'Price: Rp ${p.offerPrice}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: MortavaColors.primaryOrange,
+                                ),
+                              )
+                            else if (p.price != null)
+                              Text(
+                                'Price: Rp ${p.price}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: MortavaColors.primaryOrange,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
 
-              const Text(
-                'Alamat Pengiriman',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 20),
 
-              TextFormField(
-                controller: _phoneC,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'No. Telepon',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _streetC,
-                decoration: const InputDecoration(
-                  labelText: 'Jalan / Detail alamat',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _cityC,
-                decoration: const InputDecoration(
-                  labelText: 'Kota / Kabupaten',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _stateC,
-                decoration: const InputDecoration(
-                  labelText: 'Provinsi',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _postalC,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Kode Pos',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _countryC,
-                decoration: const InputDecoration(
-                  labelText: 'Negara',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              const Text(
-                'Metode Pembayaran',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _paymentMethod,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'cod',
-                    child: Text('Bayar di Tempat (COD)'),
+                // ================= FORM =================
+                Text(
+                  'Shipping address',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF4A3424),
                   ),
-                  DropdownMenuItem(value: 'qris', child: Text('QRIS')),
-                  DropdownMenuItem(value: 'paylater', child: Text('Paylater')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _paymentMethod = val;
-                    });
-                  }
-                },
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-              ),
-
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Buat Order'),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _phoneC,
+                        keyboardType: TextInputType.phone,
+                        decoration: _fieldDecoration('Phone number'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'This field is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _streetC,
+                        decoration:
+                            _fieldDecoration('Street / detailed address'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'This field is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _cityC,
+                        decoration: _fieldDecoration('City / Regency'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'This field is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _stateC,
+                        decoration: _fieldDecoration('Province'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'This field is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _postalC,
+                        keyboardType: TextInputType.number,
+                        decoration: _fieldDecoration('Postal code'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'This field is required'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _countryC,
+                        decoration: _fieldDecoration('Country'),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Payment method',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4A3424),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      DropdownButtonFormField<String>(
+                        value: _paymentMethod,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'cod',
+                            child: Text('Cash on Delivery (COD)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'qris',
+                            child: Text('QRIS'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'paylater',
+                            child: Text('Paylater'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _paymentMethod = val;
+                            });
+                          }
+                        },
+                        decoration: _fieldDecoration('Choose payment method'),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: const StadiumBorder(),
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFF59D),
+                                  Color(0xFFFFEB3B),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Container(
+                              height: 50,
+                              alignment: Alignment.center,
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Create Order',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF2C1B10),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

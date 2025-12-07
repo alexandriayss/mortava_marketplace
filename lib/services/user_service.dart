@@ -22,7 +22,7 @@ class UserService {
       username: username,
       email: email,
       // contoh dummy sementara:
-      createdAt: 'Bergabung: 02 Desember 2025',
+      createdAt: '02 Desember 2025',
     );
   }
 
